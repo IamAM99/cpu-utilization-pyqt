@@ -1,3 +1,7 @@
+"""A PyQt5 app to show the CPU utilization.
+Author: Mohammad Arabzadeh
+"""
+
 import os
 import sys
 import psutil
@@ -16,8 +20,15 @@ Form = uic.loadUiType(os.path.join(os.getcwd(), "mainwindow.ui"))[0]
 
 
 def get_cpu_model() -> str:
+    """Get the CPU model of the current computer.
+
+    Returns
+    -------
+    str
+        CPU model name.
+    """
     # get cpu info
-    model = subprocess.check_output("lscpu", shell=True).decode()
+    model: str = subprocess.check_output("lscpu", shell=True).decode()
 
     # get the model name
     model = model[model.find("Model name:") :].partition(":")[2]
@@ -29,23 +40,31 @@ def get_cpu_model() -> str:
 
 
 class CpuPercentThread(QtCore.QThread):
+    """CPU utilization percentage worker thread.
+    """
+
     cpu_percent = QtCore.pyqtSignal(float)
 
     def __init__(self, window):
         QtCore.QThread.__init__(self, parent=window)
 
     def run(self):
+        """Get the CPU utilization percentage every 1 second.
+        """
         while True:
             sleep(1)
             self.cpu_percent.emit(psutil.cpu_percent())
 
 
 class MainWindow(QMainWindow, Form):
+    """Main PyQt5 window
+    """
+
     time_interval = 60  # seconds
     line_colors = "C0"
 
     def __init__(self):
-        super(MainWindow, self).__init__()
+        super().__init__()
         self.setupUi(self)
         self.setWindowTitle("CPU Utilization")
 
@@ -63,6 +82,8 @@ class MainWindow(QMainWindow, Form):
         self.thread.start()
 
     def matplotlib_init(self):
+        """Initialize matplotlib figure
+        """
         # initialize a canvas
         self.fig = Figure()
         self.ax = self.fig.add_axes([0, 0.03, 0.999, 0.87])
@@ -111,7 +132,14 @@ class MainWindow(QMainWindow, Form):
         plt_container = QVBoxLayout(self.matplotlib_container)
         plt_container.addWidget(self.canvas)
 
-    def update_plot(self, val):
+    def update_plot(self, val: float):
+        """Update the matplotlib figure.
+
+        Parameters
+        ----------
+        val : float
+            New value to add to the plot.
+        """
         # update self.cpu_percent
         self.cpu_percent.popleft()
         self.cpu_percent.append(val)
@@ -133,7 +161,6 @@ class MainWindow(QMainWindow, Form):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    w = MainWindow()
-    w.show()
+    window = MainWindow()
+    window.show()
     sys.exit(app.exec_())
-
