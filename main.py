@@ -41,19 +41,21 @@ class CpuPercentThread(QtCore.QThread):
 
 
 class MainWindow(QMainWindow, Form):
+    time_interval = 60  # seconds
+    line_colors = "C0"
+
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
+        self.setWindowTitle("CPU Utilization")
 
-        # cpu model name
-        self.cpu_model_name.setText(get_cpu_model())
-        self.cpu_model_name.adjustSize()
+        # initialize plot 'x' and 'y'
+        self.x = list(range(self.time_interval))  # x
+        self.cpu_percent = deque([0] * self.time_interval)  # y
 
         # initialize the plot
         self.matplotlib_init()
-        self.cpu_percent = deque([0] * 10)
-        self.line = self.ax.plot(list(range(10)), self.cpu_percent, lw=2)[0]
-        self.ax.set_xlim([0, 9])
+        self.line = self.ax.plot(self.x, self.cpu_percent, lw=0.8)[0]
 
         # start the matplotlib thread
         self.thread = CpuPercentThread(window=self)
@@ -63,8 +65,47 @@ class MainWindow(QMainWindow, Form):
     def matplotlib_init(self):
         # initialize a canvas
         self.fig = Figure()
-        self.ax = self.fig.add_subplot()
+        self.ax = self.fig.add_axes([0, 0.03, 0.999, 0.87])
         self.canvas = FigureCanvas(self.fig)
+
+        # set frame color
+        for spine in self.ax.spines.values():
+            spine.set_edgecolor(self.line_colors)
+
+        # set title text
+        self.fig.text(0, 0.95, "CPU", ha="left", fontsize=22)
+        self.fig.text(0.999, 0.95, get_cpu_model(), ha="right", fontsize=11)
+
+        # set top text
+        self.fig.text(0, 0.91, "% Utilization", ha="left", fontsize=9, color="gray")
+        self.fig.text(0.999, 0.91, "100%", ha="right", fontsize=9, color="gray")
+
+        # set bottom text
+        self.fig.text(0, 0, "60 seconds", ha="left", fontsize=9, color="gray")
+        self.fig.text(0.999, 0, "0", ha="right", fontsize=9, color="gray")
+
+        # set xticks
+        xticks = list(range(0, self.time_interval, 5))
+        self.ax.set_xticks(xticks)
+        for line in self.ax.get_xticklines():
+            line.set_visible(False)
+        for label in self.ax.get_xticklabels():
+            label.set_visible(False)
+
+        # set yticks
+        yticks = list(range(0, 100, 10))
+        self.ax.set_yticks(yticks)
+        for line in self.ax.get_yticklines():
+            line.set_visible(False)
+        for label in self.ax.get_yticklabels():
+            label.set_visible(False)
+
+        # set grids
+        self.ax.grid(color=self.line_colors, alpha=0.1)
+
+        # set ax limits
+        self.ax.set_ylim([0, 100])
+        self.ax.set_xlim([0, self.time_interval - 1])
 
         # show figure on the window
         plt_container = QVBoxLayout(self.matplotlib_container)
@@ -76,9 +117,18 @@ class MainWindow(QMainWindow, Form):
         self.cpu_percent.append(val)
 
         # update the canvas
-        self.line.set_data(list(range(10)), self.cpu_percent)
-        self.ax.set_ylim([min(self.cpu_percent), max(self.cpu_percent)])
+        self.line.set_data(self.x, self.cpu_percent)
+        self.ax.collections.clear()
+        self.ax.fill_between(
+            self.x, self.cpu_percent, color=self.line_colors, alpha=0.1
+        )
         self.canvas.draw()
+
+        # update current utilization
+        self.current_utilization.setText(
+            f"Current Utilization: {self.cpu_percent[-1]}%"
+        )
+        self.current_utilization.adjustSize()
 
 
 if __name__ == "__main__":
