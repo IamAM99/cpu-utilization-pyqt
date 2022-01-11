@@ -7,6 +7,9 @@ import sys
 import psutil
 import subprocess
 import matplotlib
+
+matplotlib.use("Qt5Agg")
+
 from time import sleep
 from collections import deque
 from PyQt5 import uic, QtCore
@@ -14,7 +17,6 @@ from matplotlib.figure import Figure
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
-matplotlib.use("Qt5Agg")
 
 Form = uic.loadUiType(os.path.join(os.getcwd(), "mainwindow.ui"))[0]
 
